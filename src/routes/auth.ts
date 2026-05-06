@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import pool from '../config/db';
-import { hashPassword } from '../utils/password';
+import { hashPassword, verifyPassword } from '../utils/password';
 
 interface RegisterBody {
   firstName?: string;
@@ -9,6 +9,11 @@ interface RegisterBody {
   password?: string;
   confirmPassword?: string;
   acceptTerms?: boolean;
+}
+
+interface LoginBody {
+  email?: string;
+  password?: string;
 }
 
 const authRouter = Router();
@@ -85,6 +90,72 @@ authRouter.post(
     } catch (error) {
       console.error("Erreur pendant l'inscription :", error);
       res.status(500).json({ message: "Erreur serveur pendant l'inscription." });
+    }
+  },
+);
+
+authRouter.post(
+  '/login',
+  async (
+    req: Request<unknown, unknown, LoginBody>,
+    res: Response,
+  ): Promise<void> => {
+    const email = req.body.email?.trim().toLowerCase() ?? '';
+    const password = req.body.password ?? '';
+
+    if (!email || !password) {
+      res
+        .status(400)
+        .json({ message: 'Adresse mail et mot de passe sont obligatoires.' });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      res.status(400).json({ message: 'Adresse mail invalide.' });
+      return;
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT id, first_name, last_name, email, password_hash, created_at
+         FROM users
+         WHERE email = $1`,
+        [email],
+      );
+
+      if (!result.rowCount || result.rowCount === 0) {
+        res.status(401).json({ message: 'Identifiants invalides.' });
+        return;
+      }
+
+      const user = result.rows[0] as {
+        id: number;
+        first_name: string;
+        last_name: string;
+        email: string;
+        password_hash: string;
+        created_at: string;
+      };
+
+      const isValidPassword = await verifyPassword(password, user.password_hash);
+      if (!isValidPassword) {
+        res.status(401).json({ message: 'Identifiants invalides.' });
+        return;
+      }
+
+      res.status(200).json({
+        message: 'Connexion reussie.',
+        user: {
+          id: user.id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          createdAt: user.created_at,
+        },
+      });
+    } catch (error) {
+      console.error('Erreur pendant la connexion :', error);
+      res.status(500).json({ message: 'Erreur serveur pendant la connexion.' });
     }
   },
 );
