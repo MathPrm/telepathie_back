@@ -2,12 +2,12 @@
 
 Backend du projet Telepathie basé sur Node.js, Express et TypeScript avec PostgreSQL.
 
-## 🔧 Prérequis
+## Prérequis
 
 - **Node.js** 18+ et **npm**
 - **Docker** et **Docker Compose**
 
-## ⚡ Installation rapide
+## Installation rapide
 
 ### 1. Cloner le projet
 

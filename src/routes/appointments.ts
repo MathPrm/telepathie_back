@@ -184,7 +184,7 @@ appointmentsRouter.get(
         practitionerResult.rows.length === 0 ||
         practitionerResult.rows[0].role !== 'practitioner'
       ) {
-        res.status(403).json({ message: 'Acces reserve aux praticiens.' });
+        res.status(403).json({ message: 'Acces réservé aux praticiens.' });
         return;
       }
 
@@ -252,7 +252,7 @@ appointmentsRouter.get(
       );
 
       if (patientResult.rows.length === 0 || patientResult.rows[0].role !== 'patient') {
-        res.status(403).json({ message: 'Acces reserve aux utilisateurs patients.' });
+        res.status(403).json({ message: 'Acces réservé aux utilisateurs patients.' });
         return;
       }
 
@@ -312,7 +312,7 @@ appointmentsRouter.patch(
     const appointmentId = Number(req.params.appointmentId);
     const patientUserId = Number(req.body.patientUserId);
     if (!Number.isFinite(appointmentId) || !Number.isFinite(patientUserId)) {
-      res.status(400).json({ message: 'Parametres invalides.' });
+      res.status(400).json({ message: 'Paramètres invalides.' });
       return;
     }
 
@@ -336,12 +336,12 @@ appointmentsRouter.patch(
 
       const appointment = rows[0];
       if (appointment.status !== 'booked') {
-        res.status(400).json({ message: 'Ce rendez-vous ne peut plus etre annule.' });
+        res.status(400).json({ message: 'Ce rendez-vous ne peut plus etre annulé.' });
         return;
       }
 
       if (!canCancelMoreThan24HoursBefore(appointment.appointment_date, appointment.start_time)) {
-        res.status(400).json({ message: "Annulation impossible a moins de 24h du rendez-vous." });
+        res.status(400).json({ message: "Annulation impossible à moins de 24h du rendez-vous." });
         return;
       }
 
@@ -352,7 +352,7 @@ appointmentsRouter.patch(
         [appointmentId],
       );
 
-      res.status(200).json({ message: 'Rendez-vous annule.' });
+      res.status(200).json({ message: 'Rendez-vous annulé.' });
     } catch (error) {
       console.error('Erreur annulation rendez-vous:', error);
       res.status(500).json({ message: 'Erreur serveur.' });
@@ -385,7 +385,7 @@ appointmentsRouter.post(
       !appointmentTypeLabel ||
       !Number.isInteger(appointmentTypeDurationMinutes)
     ) {
-      res.status(400).json({ message: 'Parametres de reservation invalides.' });
+      res.status(400).json({ message: 'Paramètres de réservation invalides.' });
       return;
     }
 
@@ -400,23 +400,23 @@ appointmentsRouter.post(
     }
 
     if (toMinutes(startTime) >= toMinutes(endTime)) {
-      res.status(400).json({ message: "L'heure de fin doit etre apres l'heure de debut." });
+      res.status(400).json({ message: "L'heure de fin doit être après l'heure de début." });
       return;
     }
 
     const computedDuration = toMinutes(endTime) - toMinutes(startTime);
     if (computedDuration !== appointmentTypeDurationMinutes) {
-      res.status(400).json({ message: 'La duree du creneau est incoherente.' });
+      res.status(400).json({ message: 'La durée du créneau est incohérente.' });
       return;
     }
 
     if (appointmentTypeDurationMinutes < 5 || appointmentTypeDurationMinutes > 180) {
-      res.status(400).json({ message: 'La duree du rendez-vous est invalide.' });
+      res.status(400).json({ message: 'La durée du rendez-vous est invalide.' });
       return;
     }
 
     if (!isFutureOrToday(appointmentDate)) {
-      res.status(400).json({ message: 'Impossible de reserver un creneau passe.' });
+      res.status(400).json({ message: 'Impossible de réserver un créneau passé.' });
       return;
     }
 
@@ -424,7 +424,7 @@ appointmentsRouter.post(
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     if (appointmentDate === todayIso && toMinutes(startTime) <= nowMinutes) {
-      res.status(400).json({ message: 'Impossible de reserver un creneau deja passe.' });
+      res.status(400).json({ message: 'Impossible de réserver un créneau déjà passé.' });
       return;
     }
 
@@ -447,7 +447,7 @@ appointmentsRouter.post(
         [patientUserId],
       );
       if (patientResult.rows.length === 0 || patientResult.rows[0].role !== 'patient') {
-        res.status(403).json({ message: 'Reservation reservee aux utilisateurs patients.' });
+        res.status(403).json({ message: 'Réservation réservée aux utilisateurs patients.' });
         return;
       }
 
@@ -517,17 +517,17 @@ appointmentsRouter.post(
       );
 
       res.status(201).json({
-        message: 'Rendez-vous reserve.',
+        message: 'Rendez-vous réservé.',
         appointment: insertResult.rows[0],
       });
     } catch (error) {
       const maybeError = error as { code?: string };
       if (maybeError.code === '23505') {
-        res.status(409).json({ message: 'Ce creneau est deja reserve.' });
+        res.status(409).json({ message: 'Ce créneau est déjà réservé.' });
         return;
       }
 
-      console.error('Erreur creation rendez-vous:', error);
+      console.error('Erreur création rendez-vous:', error);
       res.status(500).json({ message: 'Erreur serveur.' });
     }
   },

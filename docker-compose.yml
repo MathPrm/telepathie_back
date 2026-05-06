@@ -31,7 +31,6 @@ services:
       - ./:/app
       - /app/node_modules
 
-  # Ajout de 2 espaces ici pour aligner avec api: et db:
   front:
     build:
       context: ../telepathie_front

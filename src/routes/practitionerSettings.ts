@@ -182,7 +182,7 @@ const validateWeeklySchedule = (weeklySchedule: DaySchedule[]): string | null =>
       const hasBreakEnd = row.breakEnd.trim().length > 0;
 
       if (hasBreakStart !== hasBreakEnd) {
-        return 'La pause midi doit contenir une heure de debut et une heure de fin.';
+        return 'La pause midi doit contenir une heure de début et une heure de fin.';
       }
 
       if (hasBreakStart && hasBreakEnd) {
