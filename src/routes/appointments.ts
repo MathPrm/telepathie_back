@@ -43,6 +43,29 @@ interface PatientAppointmentRow {
   practitioner_specialty: string | null;
 }
 
+interface PractitionerWeeklyScheduleRow {
+  weekly_schedule:
+    | Array<{
+        day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+        enabled: boolean;
+        startTime: string;
+        endTime: string;
+        breakStart: string;
+        breakEnd: string;
+      }>
+    | null;
+}
+
+interface PractitionerCalendarAppointmentRow {
+  id: number | string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  appointment_type_label: string;
+  patient_first_name: string;
+  patient_last_name: string;
+}
+
 const appointmentsRouter = Router();
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -80,6 +103,136 @@ const canCancelMoreThan24HoursBefore = (dateIso: string, startTime: string): boo
   const diffMs = startDateTime.getTime() - Date.now();
   return diffMs > 24 * 60 * 60 * 1000;
 };
+
+const getDefaultWeeklySchedule = (): PractitionerWeeklyScheduleRow['weekly_schedule'] => [
+  {
+    day: 'mon',
+    enabled: true,
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '',
+    breakEnd: '',
+  },
+  {
+    day: 'tue',
+    enabled: true,
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '',
+    breakEnd: '',
+  },
+  {
+    day: 'wed',
+    enabled: true,
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '',
+    breakEnd: '',
+  },
+  {
+    day: 'thu',
+    enabled: true,
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '',
+    breakEnd: '',
+  },
+  {
+    day: 'fri',
+    enabled: true,
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '',
+    breakEnd: '',
+  },
+  {
+    day: 'sat',
+    enabled: false,
+    startTime: '',
+    endTime: '',
+    breakStart: '',
+    breakEnd: '',
+  },
+  {
+    day: 'sun',
+    enabled: false,
+    startTime: '',
+    endTime: '',
+    breakStart: '',
+    breakEnd: '',
+  },
+];
+
+appointmentsRouter.get(
+  '/practitioner/:userId/calendar',
+  async (req: Request<{ userId: string }>, res: Response): Promise<void> => {
+    const userId = Number(req.params.userId);
+    if (!Number.isFinite(userId)) {
+      res.status(400).json({ message: 'Identifiant utilisateur invalide.' });
+      return;
+    }
+
+    try {
+      const practitionerResult = await pool.query<UserRoleRow>(
+        `SELECT id, role, first_name, last_name, email
+         FROM users
+         WHERE id = $1`,
+        [userId],
+      );
+
+      if (
+        practitionerResult.rows.length === 0 ||
+        practitionerResult.rows[0].role !== 'practitioner'
+      ) {
+        res.status(403).json({ message: 'Acces reserve aux praticiens.' });
+        return;
+      }
+
+      const settingsResult = await pool.query<PractitionerWeeklyScheduleRow>(
+        `SELECT weekly_schedule
+         FROM practitioner_settings
+         WHERE user_id = $1`,
+        [userId],
+      );
+
+      const weeklySchedule = Array.isArray(settingsResult.rows[0]?.weekly_schedule)
+        ? settingsResult.rows[0].weekly_schedule
+        : getDefaultWeeklySchedule();
+
+      const appointmentsResult = await pool.query<PractitionerCalendarAppointmentRow>(
+        `SELECT
+           id,
+           appointment_date::text AS appointment_date,
+           start_time::text AS start_time,
+           end_time::text AS end_time,
+           appointment_type_label,
+           patient_first_name,
+           patient_last_name
+         FROM appointments
+         WHERE practitioner_user_id = $1
+           AND status = 'booked'
+         ORDER BY appointment_date ASC, start_time ASC`,
+        [userId],
+      );
+
+      res.status(200).json({
+        weeklySchedule,
+        appointments: appointmentsResult.rows.map((item) => ({
+          id: Number(item.id),
+          appointmentDate: item.appointment_date,
+          startTime: item.start_time.slice(0, 5),
+          endTime: item.end_time.slice(0, 5),
+          appointmentTypeLabel: item.appointment_type_label,
+          patientFirstName: item.patient_first_name,
+          patientLastName: item.patient_last_name,
+        })),
+      });
+    } catch (error) {
+      console.error('Erreur lecture calendrier praticien:', error);
+      res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  },
+);
 
 appointmentsRouter.get(
   '/patient/:userId',
