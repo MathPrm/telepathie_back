@@ -44,4 +44,30 @@ export const ensureDatabaseSchema = async (): Promise<void> => {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS appointments (
+      id BIGSERIAL PRIMARY KEY,
+      practitioner_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      patient_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      appointment_date DATE NOT NULL,
+      start_time TIME NOT NULL,
+      end_time TIME NOT NULL,
+      appointment_type_label VARCHAR(255) NOT NULL,
+      appointment_type_duration_minutes INTEGER NOT NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'booked',
+      patient_first_name VARCHAR(120) NOT NULL,
+      patient_last_name VARCHAR(120) NOT NULL,
+      patient_email VARCHAR(255) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT appointments_start_before_end CHECK (start_time < end_time),
+      CONSTRAINT appointments_duration_positive CHECK (appointment_type_duration_minutes >= 5)
+    );
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS appointments_unique_practitioner_slot_idx
+    ON appointments (practitioner_user_id, appointment_date, start_time)
+    WHERE status = 'booked';
+  `);
 };

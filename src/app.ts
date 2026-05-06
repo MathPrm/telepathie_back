@@ -2,6 +2,7 @@
   import cors from 'cors';
   import dotenv from 'dotenv';
   import authRouter from './routes/auth';
+  import appointmentsRouter from './routes/appointments';
   import practitionerSettingsRouter from './routes/practitionerSettings';
 
   dotenv.config();
@@ -23,5 +24,6 @@
 
   app.use('/api/auth', authRouter);
   app.use('/api/practitioners', practitionerSettingsRouter);
+  app.use('/api/appointments', appointmentsRouter);
 
   export default app;

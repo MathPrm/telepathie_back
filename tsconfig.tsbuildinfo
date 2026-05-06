@@ -1,1 +1,1 @@
-{"root":["./src/app.ts","./src/server.ts","./src/config/db.ts","./src/config/initschema.ts","./src/routes/auth.ts","./src/routes/practitionersettings.ts","./src/utils/password.ts"],"version":"6.0.3"}
+{"root":["./src/app.ts","./src/server.ts","./src/config/db.ts","./src/config/initschema.ts","./src/routes/appointments.ts","./src/routes/auth.ts","./src/routes/practitionersettings.ts","./src/utils/password.ts"],"version":"6.0.3"}
