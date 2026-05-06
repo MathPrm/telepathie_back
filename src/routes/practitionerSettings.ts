@@ -38,6 +38,12 @@ interface PractitionerPublicRow {
   weekly_schedule: DaySchedule[] | null;
 }
 
+interface PractitionerBookedAppointmentRow {
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+}
+
 const practitionerSettingsRouter = Router();
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
@@ -277,6 +283,18 @@ practitionerSettingsRouter.get(
         return;
       }
 
+      const bookedAppointmentsResult = await pool.query<PractitionerBookedAppointmentRow>(
+        `SELECT
+           appointment_date::text AS appointment_date,
+           start_time::text AS start_time,
+           end_time::text AS end_time
+         FROM appointments
+         WHERE practitioner_user_id = $1
+           AND status = 'booked'
+           AND appointment_date >= CURRENT_DATE`,
+        [userId],
+      );
+
       const row = rows[0];
       res.status(200).json({
         id: Number(row.user_id),
@@ -289,6 +307,11 @@ practitionerSettingsRouter.get(
         weeklySchedule: Array.isArray(row.weekly_schedule)
           ? row.weekly_schedule
           : getDefaultWeeklySchedule(),
+        bookedAppointments: bookedAppointmentsResult.rows.map((item) => ({
+          appointmentDate: item.appointment_date,
+          startTime: item.start_time.slice(0, 5),
+          endTime: item.end_time.slice(0, 5),
+        })),
       });
     } catch (error) {
       console.error('Erreur profil public praticien:', error);
