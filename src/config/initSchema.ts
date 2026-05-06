@@ -34,4 +34,14 @@ export const ensureDatabaseSchema = async (): Promise<void> => {
     ALTER TABLE users
     ALTER COLUMN role SET DEFAULT 'patient';
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS practitioner_settings (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      specialty VARCHAR(255) NOT NULL DEFAULT '',
+      appointment_types JSONB NOT NULL DEFAULT '[]'::jsonb,
+      weekly_schedule JSONB NOT NULL DEFAULT '[]'::jsonb,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
 };
