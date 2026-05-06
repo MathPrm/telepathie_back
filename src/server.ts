@@ -1,12 +1,16 @@
 import app from './app';
+import pool from './config/db';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    const client = await pool.connect();
+    console.log('✅ Base de données prête');
+    client.release();
 
     app.listen(port, () => {
       console.log(`🚀 Serveur démarré avec succès sur http://localhost:${port}`);
