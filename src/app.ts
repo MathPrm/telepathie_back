@@ -1,6 +1,7 @@
   import express, { Application, Request, Response } from 'express';
   import cors from 'cors';
   import dotenv from 'dotenv';
+  import authRouter from './routes/auth';
 
   dotenv.config();
 
@@ -18,5 +19,7 @@
   app.get('/api/hello', (req: Request, res: Response) => {
     res.json({ message: 'Hello World depuis l\'architecture propre Node.js !' });
   });
+
+  app.use('/api/auth', authRouter);
 
   export default app;
