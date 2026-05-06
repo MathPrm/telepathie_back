@@ -21,6 +21,23 @@ interface UpdateSettingsBody {
   weeklySchedule?: DaySchedule[];
 }
 
+interface PractitionerSearchRow {
+  user_id: number | string;
+  first_name: string;
+  last_name: string;
+  specialty: string | null;
+  appointment_types: AppointmentType[] | null;
+}
+
+interface PractitionerPublicRow {
+  user_id: number | string;
+  first_name: string;
+  last_name: string;
+  specialty: string | null;
+  appointment_types: AppointmentType[] | null;
+  weekly_schedule: DaySchedule[] | null;
+}
+
 const practitionerSettingsRouter = Router();
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
@@ -178,6 +195,107 @@ const validateWeeklySchedule = (weeklySchedule: DaySchedule[]): string | null =>
 
   return null;
 };
+
+practitionerSettingsRouter.get(
+  '/search',
+  async (req: Request<unknown, unknown, unknown, { q?: string }>, res: Response): Promise<void> => {
+    const query = (req.query.q ?? '').trim();
+
+    if (!query) {
+      res.status(200).json({ query, results: [] });
+      return;
+    }
+
+    try {
+      const sql = `
+        SELECT
+          u.id AS user_id,
+          u.first_name,
+          u.last_name,
+          ps.specialty,
+          ps.appointment_types
+        FROM users u
+        LEFT JOIN practitioner_settings ps ON ps.user_id = u.id
+        WHERE
+          u.role = 'practitioner'
+          AND (
+            u.first_name ILIKE $1
+            OR u.last_name ILIKE $1
+            OR COALESCE(ps.specialty, '') ILIKE $1
+          )
+        ORDER BY u.last_name ASC, u.first_name ASC
+        LIMIT 100
+      `;
+
+      const { rows } = await pool.query<PractitionerSearchRow>(sql, [`%${query}%`]);
+
+      res.status(200).json({
+        query,
+        results: rows.map((row) => ({
+          id: Number(row.user_id),
+          firstName: row.first_name,
+          lastName: row.last_name,
+          specialty: row.specialty ?? '',
+          appointmentTypes: Array.isArray(row.appointment_types)
+            ? row.appointment_types
+            : [],
+        })),
+      });
+    } catch (error) {
+      console.error('Erreur recherche praticiens:', error);
+      res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  },
+);
+
+practitionerSettingsRouter.get(
+  '/:userId/public-profile',
+  async (req: Request<{ userId: string }>, res: Response): Promise<void> => {
+    const userId = parseUserId(req.params.userId);
+    if (!Number.isFinite(userId)) {
+      res.status(400).json({ message: 'Identifiant utilisateur invalide.' });
+      return;
+    }
+
+    try {
+      const sql = `
+        SELECT
+          u.id AS user_id,
+          u.first_name,
+          u.last_name,
+          ps.specialty,
+          ps.appointment_types,
+          ps.weekly_schedule
+        FROM users u
+        LEFT JOIN practitioner_settings ps ON ps.user_id = u.id
+        WHERE u.id = $1 AND u.role = 'practitioner'
+      `;
+
+      const { rows } = await pool.query<PractitionerPublicRow>(sql, [userId]);
+      if (rows.length === 0) {
+        res.status(404).json({ message: 'Praticien introuvable.' });
+        return;
+      }
+
+      const row = rows[0];
+      res.status(200).json({
+        id: Number(row.user_id),
+        firstName: row.first_name,
+        lastName: row.last_name,
+        specialty: row.specialty ?? '',
+        appointmentTypes: Array.isArray(row.appointment_types)
+          ? row.appointment_types
+          : [],
+        weeklySchedule: Array.isArray(row.weekly_schedule)
+          ? row.weekly_schedule
+          : getDefaultWeeklySchedule(),
+      });
+    } catch (error) {
+      console.error('Erreur profil public praticien:', error);
+      res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  },
+);
 
 practitionerSettingsRouter.get(
   '/:userId/settings',
