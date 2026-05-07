@@ -13,18 +13,19 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    build: .
+    build:
+      context: .
+      target: development
     container_name: telepathie_api
     ports:
       - "${PORT}:${PORT}"
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
       - PORT=${PORT}
       - DB_USER=${DB_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - DB_NAME=${DB_NAME}
-      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - db
     volumes:
@@ -34,13 +35,12 @@ services:
   front:
     build:
       context: ../telepathie_front
+      target: development
     container_name: telepathie_front
     ports:
-      - "5173:5173"
+      - "${FRONT_PORT}:${FRONT_PORT}"
     env_file:
       - ../telepathie_front/.env
-    environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
     volumes:
       - ../telepathie_front:/app
       - /app/node_modules

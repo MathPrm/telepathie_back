@@ -1,0 +1,25 @@
+services:
+  db:
+    # On laisse la DB interne, pas besoin de port exposé en prod 
+    # (sauf si tu veux y accéder de l'extérieur)
+    restart: always
+
+  api:
+    build:
+      context: .
+      target: production
+    ports:
+      - "${API_PROD_PORT:-5000}:${PORT}"
+    volumes: !reset []
+    restart: always
+
+  front:
+    build:
+      context: ../telepathie_front
+      target: production
+      args:
+        - VITE_API_URL=${VITE_API_URL_PROD}
+    ports:
+      - "${FRONT_PROD_PORT:-80}:80"
+    volumes: !reset []
+    restart: always
