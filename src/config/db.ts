@@ -1,17 +1,19 @@
 import { Pool } from 'pg';
-import dotenv from 'dotenv';
 
-dotenv.config();
+const { DB_USER, DB_HOST, DB_NAME, POSTGRES_PASSWORD, DB_PORT } = process.env;
+
+if (!DB_USER || !DB_HOST || !DB_NAME || !POSTGRES_PASSWORD) {
+  throw new Error('Variables de base de données manquantes');
+}
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.POSTGRES_PASSWORD,
-  port: Number(process.env.DB_PORT) || 5432,
+  user: DB_USER,
+  host: DB_HOST,
+  database: DB_NAME,
+  password: POSTGRES_PASSWORD,
+  port: Number(DB_PORT) || 5432,
 });
 
-// Test de connexion
 pool.on('connect', () => {
   console.log('Connecté à la base de données PostgreSQL');
 });
